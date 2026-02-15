@@ -1,0 +1,47 @@
+#######################################
+# Syntax Coloring Map For ESP32AI
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+ESP32AI	KEYWORD1
+SkillResponse	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+setSkills	KEYWORD2
+configureI2S	KEYWORD2
+configureRecordingPin	KEYWORD2
+setWorkerAIEndpoint	KEYWORD2
+startListening	KEYWORD2
+processCommand	KEYWORD2
+getDeviceID	KEYWORD2
+getWorkerAIEndpoint	KEYWORD2
+hasAuthorization	KEYWORD2
+setDeviceID	KEYWORD2
+setAuthorization	KEYWORD2
+isReady	KEYWORD2
+calibrateSilenceThreshold	KEYWORD2
+runSetup	KEYWORD2
+
+#######################################
+# Structure Members (KEYWORD2)
+#######################################
+
+hasAction	KEYWORD2
+targetName	KEYWORD2
+actionName	KEYWORD2
+actionValue	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+MAX_RECORD_TIME_MS	LITERAL1
+COMPRESSION_BLOCK_SIZE	LITERAL1
+COMPRESSION_TARGET_LEVEL	LITERAL1
