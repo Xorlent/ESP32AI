@@ -14,8 +14,7 @@ ESP32AI Voice Command enables ESP32 devices to process voice commands via Cloudf
 - ✅ **NVS Credential Storage**: Automatically saves and retrieves DeviceID, Authorization tokens, and calibration data
 - ✅ **Skill-Based System**: Define custom voice commands with flexible action variants
 - ✅ **GPIO Trigger**: Start/stop recording with a physical button
-- ✅ **3.5-Second Default Limit**: Configurable recording duration
-- ✅ **HTTPS Communication**: Secure communication with Cloudflare WorkerAI
+- ✅ **HTTPS Communication**: Secure communication with your Cloudflare Worker
 - ✅ **Easy Integration**: Simple non-blocking API for easy loop() integration
 
 ---
