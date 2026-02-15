@@ -707,7 +707,7 @@ If you see `HTTP Error code: -1` with "Connection failed - possible SSL/TLS hand
 
 ## Dependencies
 
-- **ArduinoJson** (v6.21.0 or later) - JSON parsing and serialization
+- **ArduinoJson** (v7.4.2 or later) - JSON parsing and serialization
 - **esp32 by Espressif Systems** - For WiFi, I2S, NVS, and HTTP client
 
 ---
