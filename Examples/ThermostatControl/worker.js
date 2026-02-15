@@ -40,16 +40,23 @@ export default {
     return new Response("Not found.", { status: 404 });
   }
 
-    // Verify authorization if AUTH_TOKEN is set
-    if (env.AUTH_TOKEN) {
-      const authHeader = request.headers.get("Authorization");
-      if (!authHeader || authHeader !== env.AUTH_TOKEN) {
-        console.log("Unauthorized request attempt");
-        return new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          { status: 401, headers: { "Content-Type": "application/json" } }
-        );
-      }
+    // Verify AUTH_TOKEN is configured
+    if (!env.AUTH_TOKEN || env.AUTH_TOKEN.length <= 10) {
+      console.log("AUTH_TOKEN not configured or too short (> 10 characters required)");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error: setup incomplete" }),
+        { status: 417, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify authorization header
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || authHeader !== env.AUTH_TOKEN) {
+      console.log("Unauthorized request attempt");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     try {
