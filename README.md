@@ -8,14 +8,14 @@ ESP32AI Voice Command enables ESP32 devices to process voice commands via Cloudf
 
 ## Features
 
-- ✅ **I2S Audio Recording**: Records mono audio at 8kHz, 8-bit from I2S MEMS microphones
-- ✅ **Block-Based Audio Compression**: Real-time dynamic range compression with per-chunk gain adjustment
-- ✅ **Automatic Silence Detection**: Calibrated noise floor detection prevents background noise amplification
-- ✅ **NVS Credential Storage**: Automatically saves and retrieves DeviceID, Authorization tokens, and calibration data
-- ✅ **Skill-Based System**: Define custom voice commands with flexible action variants
-- ✅ **GPIO Trigger**: Start/stop recording with a physical button
-- ✅ **HTTPS Communication**: Secure communication with your Cloudflare Worker
-- ✅ **Easy Integration**: Simple non-blocking API for easy loop() integration
+- **I2S Audio Recording**: Records mono audio at 8kHz, 8-bit from I2S MEMS microphones
+- **Block-Based Audio Compression**: Real-time dynamic range compression with per-chunk gain adjustment
+- **Automatic Silence Detection**: Calibrated noise floor detection prevents background noise amplification
+- **NVS Credential Storage**: Automatically saves and retrieves DeviceID, Authorization tokens, and calibration data
+- **Skill-Based System**: Define custom voice commands with flexible action variants
+- **GPIO Trigger**: Start/stop recording with a physical button
+- **HTTPS Communication**: Secure communication with your Cloudflare Worker
+- **Easy Integration**: Simple non-blocking API for easy loop() integration
 
 ---
 
