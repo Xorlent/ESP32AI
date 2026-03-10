@@ -1131,7 +1131,7 @@ String ESP32AI::sendToWorkerAI(uint32_t timeoutMs) {
     size_t freeHeap = ESP.getFreeHeap();
     size_t audioDataSize = _audioBufferSize - _audioDataOffset;
     size_t estimatedBodySize = _maxBufferSize;  // Entire buffer will be used for multipart body
-    size_t requiredHeap = estimatedBodySize + 35000;  // Add 35KB for SSL, HTTP processing, and buffers
+    size_t requiredHeap = estimatedBodySize + 32000;  // Add 32KB for SSL, HTTP processing, and buffers
     
     if (freeHeap < requiredHeap) {
         Serial.printf("[ESP32AI] ERROR: Insufficient memory.\n");
