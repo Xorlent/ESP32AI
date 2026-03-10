@@ -223,6 +223,7 @@ private:
     String normalizeEndpointUrl(const String& url);
     int32_t calculate95thPercentile(int32_t* values, size_t count);
     String readSerialLine(unsigned long timeoutMs);
+    void freeAudioBuffer();
 };
 
 #endif // ESP32AI_H

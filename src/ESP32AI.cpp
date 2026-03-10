@@ -271,6 +271,12 @@ bool ESP32AI::setDeviceID(const char* deviceID) {
         return false;
     }
     
+    // Free audio buffer if deviceID is changing (header space will be different)
+    if (_audioBuffer != nullptr && _deviceID != String(deviceID)) {
+        Serial.println("[ESP32AI] DeviceID changed, clearing audio buffer");
+        freeAudioBuffer();
+    }
+    
     _deviceID = String(deviceID);
     
     // Save to NVS for persistence
@@ -449,12 +455,7 @@ bool ESP32AI::calibrateSilenceThreshold(float multiplier) {
     // The buffer will be reallocated on next recording
     if (_audioBuffer != nullptr) {
         Serial.println("[ESP32AI] Freeing audio buffer for calibration");
-        free(_audioBuffer);
-        _audioBuffer = nullptr;
-        _maxBufferSize = 0;
-        _multipartHeaderSpace = 0;
-        _audioDataOffset = 0;
-        _audioBufferSize = 0;
+        freeAudioBuffer();
     }
     
     Serial.println("[ESP32AI] ========================================");
@@ -843,15 +844,6 @@ bool ESP32AI::recordAudio() {
         _maxBufferSize = requiredBufferSize;
         Serial.printf("[ESP32AI] Unified buffer allocated successfully, free heap: %d bytes\n", ESP.getFreeHeap());
         buffersAllocated = true;
-    } else if (_maxBufferSize < (_multipartHeaderSpace + maxAudioDataSize + 64)) {
-        // Buffer exists but is too small - reallocate
-        Serial.println("[ESP32AI] Buffer too small, reallocating...");
-        free(_audioBuffer);
-        _audioBuffer = nullptr;
-        _multipartHeaderSpace = 0;
-        _audioDataOffset = 0;
-        _maxBufferSize = 0;
-        // Will be reallocated below
     }
     
     // Allocate block processing buffers only if not allocated
@@ -1601,6 +1593,21 @@ bool ESP32AI::validateHttpsUrl(const String& url) {
     }
     
     return true;
+}
+
+/**
+ * Free audio buffer and reset all related state variables
+ * Call this when the buffer needs to be reallocated (e.g., config changes)
+ */
+void ESP32AI::freeAudioBuffer() {
+    if (_audioBuffer != nullptr) {
+        free(_audioBuffer);
+        _audioBuffer = nullptr;
+    }
+    _maxBufferSize = 0;
+    _multipartHeaderSpace = 0;
+    _audioDataOffset = 0;
+    _audioBufferSize = 0;
 }
 
 /**
