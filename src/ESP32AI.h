@@ -27,15 +27,15 @@
 // Adaptive gain control (AGC) - Block-based compression configuration
 // Override these values by defining them before #include ESP32AI.h
 #ifndef COMPRESSION_BLOCK_SIZE
-#define COMPRESSION_BLOCK_SIZE 512  // Process audio in 512 sample blocks (bytes) for compression
+#define COMPRESSION_BLOCK_SIZE 256  // Process audio in 256 sample blocks (32ms @ 8kHz)
 #endif
 
 #ifndef COMPRESSION_TARGET_LEVEL
-#define COMPRESSION_TARGET_LEVEL 118  // Target for 95th percentile level (92% of 128 max)
+#define COMPRESSION_TARGET_LEVEL 100  // 78% of 128 max
 #endif
 
 // If calibration has not been performed, use this default silence threshold
-#define DEFAULT_SILENCE_THRESHOLD 5000  // 95th percentile below this = silent block (24-bit scale)
+#define DEFAULT_SILENCE_THRESHOLD 5000  // 85th percentile below this = silent block (24-bit scale)
 
 // Default I2S configuration
 #define DEFAULT_SAMPLE_RATE 8000
@@ -164,10 +164,10 @@ public:
     /**
      * Calibrates the silence threshold by measuring ambient noise
      * Result stored in NVS for persistence
-     * @param multiplier Multiplier applied to noise floor (default 3.0). Higher = Raises squelch threshold (more aggressive silence detection).
+     * @param multiplier Multiplier applied to noise floor (default 2.0). Higher = Raises squelch threshold (more aggressive silence detection).
      * @return true if calibration successful
      */
-    bool calibrateSilenceThreshold(float multiplier = 3.0);
+    bool calibrateSilenceThreshold(float multiplier = 2.0);
     
     /**
      * Interactive setup routine via Serial Monitor
@@ -207,7 +207,7 @@ private:
     size_t _audioDataOffset;        // Offset where audio recording starts (after headers)
     int32_t* _blockBuffer24;        // Reusable buffer for block processing
     int32_t* _blockAbsValues;       // Reusable buffer for absolute values
-    int32_t _silenceThreshold;      // 95th percentile threshold for silence detection (in 24-bit scale)
+    int32_t _silenceThreshold;      // 85th percentile threshold for silence detection (in 24-bit scale)
     
     // Private methods
     bool initializeNVS();
@@ -221,7 +221,7 @@ private:
     void createWavHeader(uint8_t* header, uint32_t dataSize, uint32_t sampleRate, uint16_t bitsPerSample, uint16_t channels);
     bool validateHttpsUrl(const String& url);
     String normalizeEndpointUrl(const String& url);
-    int32_t calculate95thPercentile(int32_t* values, size_t count);
+    int32_t calculate85thPercentile(int32_t* values, size_t count);
     String readSerialLine(unsigned long timeoutMs);
     void freeAudioBuffer();
 };
