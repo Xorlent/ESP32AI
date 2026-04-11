@@ -26,6 +26,7 @@
  * 3. Open Serial Monitor - setup will run automatically on first boot
  * 4. After setup, send 'C' to calibrate silence threshold
  * 5. Press button to speak a voice command (3.5s max)
+ *    Examples of valid commands: "Turn heater on", "Set thermostat to 80 degrees", "Turn thermostat fan on", "Turn thermostat off", etc...
  * 
  * Serial Monitor Commands:
  * - 'S' = Configure/update credentials
@@ -87,7 +88,7 @@ const char* skillsJson = R"([
       {
         "Name": "Set",
         "Type": "integer",
-        "Variants": ["cool to", "set ac to", "heat to", "set heat to", "set he to"]
+        "Variants": ["cool to", "set ac to", "heat to", "set heat to", "set heater to"]
       }
     ]
   }
