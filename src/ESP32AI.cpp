@@ -20,7 +20,7 @@
 #define NVS_DEVICEID "deviceid"
 #define NVS_AUTH_KEY "auth"
 #define NVS_ENDPOINT_KEY "endpoint"
-#define NVS_SILENCE_KEY "silence"
+#define NVS_SILENCE_THRESHOLD "silence"
 
 /**
  * Constructor
@@ -163,7 +163,7 @@ bool ESP32AI::initializeNVS() {
     }
     
     // Load silence threshold from NVS (or use default if not calibrated)
-    _silenceThreshold = _preferences.getInt(NVS_SILENCE_KEY, DEFAULT_SILENCE_THRESHOLD);
+    _silenceThreshold = _preferences.getInt(NVS_SILENCE_THRESHOLD, DEFAULT_SILENCE_THRESHOLD);
     if (_silenceThreshold != DEFAULT_SILENCE_THRESHOLD) {
         Serial.printf("[ESP32AI] Silence threshold loaded from NVS: %d\n", _silenceThreshold);
     }
@@ -327,7 +327,8 @@ bool ESP32AI::initializeI2S() {
         return true; // Already configured
     }
     
-    // Configuration tested with INMP441 microphone in I2S mode, 4k DMA buffer
+    // Configuration tested with INMP441 microphone in I2S mode, 6k DMA buffer
+    // 6 buffers × 1024 samples = 768ms buffering at 8kHz (50% safety margin)
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = DEFAULT_SAMPLE_RATE,
@@ -335,7 +336,7 @@ bool ESP32AI::initializeI2S() {
         .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,//I2S_COMM_FORMAT_I2S,
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 4,
+        .dma_buf_count = 6,
         .dma_buf_len = 1024,
         .use_apll = false,
         .tx_desc_auto_clear = false,
@@ -466,12 +467,17 @@ bool ESP32AI::calibrateSilenceThreshold(float multiplier) {
     
     delay(1000);  // Give user time to read the message
     
-    // Flush any stale data from I2S FIFO
-    int32_t discardBuffer[128];
+    // Properly flush I2S DMA buffers to avoid stale/garbage data
+    Serial.println("[ESP32AI] Clearing I2S buffers...");
+    i2s_zero_dma_buffer(_i2sPort);
+    delay(100);  // Allow DMA hardware to stabilize
+    
+    int32_t discardBuffer[256];
     size_t bytesRead = 0;
-    for (int i = 0; i < 5; i++) {
-        i2s_read(_i2sPort, discardBuffer, sizeof(discardBuffer), &bytesRead, 10);
+    for (int i = 0; i < 10; i++) {
+        i2s_read(_i2sPort, discardBuffer, sizeof(discardBuffer), &bytesRead, pdMS_TO_TICKS(10));
     }
+    Serial.println("[ESP32AI] I2S buffers cleared, starting calibration...");
     
     // Record 3 seconds of ambient noise
     const uint32_t calibrationDuration = 3000;  // 3 seconds
@@ -545,8 +551,8 @@ bool ESP32AI::calibrateSilenceThreshold(float multiplier) {
     
     Serial.printf("[ESP32AI] Microphone check passed (variation range: %d)\n", range);
     
-    // Calculate 95th percentile of ambient noise
-    int32_t noiseFloor = calculate95thPercentile(absoluteValues, sampleCount);
+    // Calculate 85th percentile of ambient noise (more permissive than 95th for speech)
+    int32_t noiseFloor = calculate85thPercentile(absoluteValues, sampleCount);
     free(absoluteValues);
     
     // Set threshold to multiplier × noise floor (provides safety margin)
@@ -554,7 +560,7 @@ bool ESP32AI::calibrateSilenceThreshold(float multiplier) {
     
     // Save to NVS for persistence
     if (_preferences.begin(NVS_NAMESPACE, false)) {
-        _preferences.putInt(NVS_SILENCE_KEY, _silenceThreshold);
+        _preferences.putInt(NVS_SILENCE_THRESHOLD, _silenceThreshold);
         _preferences.end();
     }
     
@@ -562,7 +568,7 @@ bool ESP32AI::calibrateSilenceThreshold(float multiplier) {
     Serial.println("[ESP32AI] ========================================");
     Serial.println("[ESP32AI]          CALIBRATION COMPLETE");
     Serial.println("[ESP32AI] ========================================");
-    Serial.printf("[ESP32AI] Noise floor (95th percentile): %d\n", noiseFloor);
+    Serial.printf("[ESP32AI] Noise floor (85th percentile): %d\n", noiseFloor);
     Serial.printf("[ESP32AI] Multiplier applied: %.1fx\n", multiplier);
     Serial.printf("[ESP32AI] Silence threshold set to: %d\n", _silenceThreshold);
     Serial.println("[ESP32AI] Threshold saved to NVS (persistent)");
@@ -579,11 +585,17 @@ String ESP32AI::readSerialLine(unsigned long timeoutMs) {
     String input = "";
     unsigned long startTime = millis();
     
+    // First, clear any leftover characters in the buffer
+    delay(50);
+    while (Serial.available()) {
+        Serial.read();
+    }
+    
     while (millis() - startTime < timeoutMs) {
         if (Serial.available()) {
             char c = Serial.read();
             if (c == '\n') {
-                // Newline received - return whatever we have (could be empty)
+                // Newline received - return input (may be empty for default values)
                 return input;
             } else if (c != '\r') {
                 // Add character (ignore carriage returns)
@@ -914,11 +926,11 @@ bool ESP32AI::recordAudio() {
                 // Process any remaining partial block (only occurs on early button release,
                 // never at buffer capacity since buffer is block-aligned)
                 if (blockPosition > 0) {
-                    // Calculate 95th percentile for partial block
+                    // Calculate 85th percentile for partial block
                     for (size_t i = 0; i < blockPosition; i++) {
                         _blockAbsValues[i] = abs(_blockBuffer24[i]);
                     }
-                    int32_t blockLevel = calculate95thPercentile(_blockAbsValues, blockPosition);
+                    int32_t blockLevel = calculate85thPercentile(_blockAbsValues, blockPosition);
                     // Note: _blockAbsValues is now modified by quickselect (no longer needed)
                     
                     // Check if this is a silent block
@@ -960,8 +972,8 @@ bool ESP32AI::recordAudio() {
                 _blockAbsValues[j] = abs(_blockBuffer24[j]);
             }
             
-            // Calculate 95th percentile of this block
-            int32_t blockLevel = calculate95thPercentile(_blockAbsValues, COMPRESSION_BLOCK_SIZE);
+            // Calculate 85th percentile of this block
+            int32_t blockLevel = calculate85thPercentile(_blockAbsValues, COMPRESSION_BLOCK_SIZE);
             
             // Check if this is a silent block
             bool isSilent = blockLevel < _silenceThreshold;
@@ -1131,7 +1143,7 @@ String ESP32AI::sendToWorkerAI(uint32_t timeoutMs) {
     size_t freeHeap = ESP.getFreeHeap();
     size_t audioDataSize = _audioBufferSize - _audioDataOffset;
     size_t estimatedBodySize = _maxBufferSize;  // Entire buffer will be used for multipart body
-    size_t requiredHeap = estimatedBodySize + 35000;  // Add 35KB for SSL, HTTP processing, and buffers
+    size_t requiredHeap = estimatedBodySize + 32000;  // Add 32KB for SSL, HTTP processing, and buffers
     
     if (freeHeap < requiredHeap) {
         Serial.printf("[ESP32AI] ERROR: Insufficient memory.\n");
@@ -1488,11 +1500,12 @@ SkillResponse ESP32AI::parseResponse(const String& jsonResponse) {
 }
 
 /**
- * Calculate 95th percentile of an array of values (for silence detection and compression)
+ * Calculate 85th percentile of an array of values (for silence detection and compression)
  * Uses in-place quickselect algorithm - O(n) average time, no malloc needed
+ * More permissive than 95th percentile - better for preserving speech with natural pauses
  * WARNING: This function modifies the input array (partial sorting)
  */
-int32_t ESP32AI::calculate95thPercentile(int32_t* values, size_t count) {
+int32_t ESP32AI::calculate85thPercentile(int32_t* values, size_t count) {
     if (count == 0) {
         return 0;
     }
@@ -1501,11 +1514,11 @@ int32_t ESP32AI::calculate95thPercentile(int32_t* values, size_t count) {
         return values[0];
     }
     
-    // Calculate target index for 95th percentile
-    size_t targetIndex = (size_t)((count - 1) * 0.95);
+    // Calculate target index for 85th percentile (more permissive than 95th for speech detection)
+    size_t targetIndex = (size_t)((count - 1) * 0.85);
     
     // Use quickselect to find the element at targetIndex position
-    // This partitions the array so that values[targetIndex] contains the 95th percentile
+    // This partitions the array so that values[targetIndex] contains the 85th percentile
     int left = 0;
     int right = count - 1;
     
