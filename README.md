@@ -69,10 +69,10 @@ ESP32AI Voice Command enables ESP32 devices to process voice commands via Cloudf
 | WS (LRCLK)  | GPIO 21             | Word Select     |
 | SD (DATA)   | GPIO 19             | Serial Data     |
 | L/R         | GND                 | Left channel    |
-| VDD         | 3.3V                | Power (NOT 5V!) |
+| VDD         | 3.3V                | Power           |
 | GND         | GND                 | Ground          |
 
-**Important:** INMP441 uses 3.3V, not 5V! Connecting to 5V can damage the microphone.
+**Important:** INMP441 uses 3.3V. Connecting to 5V can damage the microphone.
 
 **Note on Pins:** You can use any appropriate GPIO pins - just update them in your code with `configureI2S()`. The pins shown above match the BasicUsage example.
 
